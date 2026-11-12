@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eventlab.domain.answer.mapper.AnswerMapper">
+
+    <insert id="insertAnswer"
+            parameterType="com.eventlab.domain.answer.dto.AnswerInsertCommand"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO answers (
+            event_id,
+            participation_id,
+            question_id,
+            answer_text,
+            rating_value,
+            other_text
+        )
+        VALUES (
+            #{eventId},
+            #{participationId},
+            #{questionId},
+            #{answerText},
+            #{ratingValue},
+            #{otherText}
+        )
+    </insert>
+
+    <insert id="insertAnswerOptions">
+        INSERT INTO answer_options (
+            answer_id,
+            question_id,
+            question_option_id
+        )
+        VALUES
+        <foreach collection="optionIds" item="optionId" separator=",">
+            (#{answerId}, #{questionId}, #{optionId})
+        </foreach>
+    </insert>
+</mapper>

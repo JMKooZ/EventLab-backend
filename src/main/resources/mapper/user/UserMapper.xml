@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eventlab.domain.user.mapper.UserMapper">
+
+    <select id="findAll" resultType="com.eventlab.domain.user.dto.UserResponse">
+        SELECT
+            id,
+            email,
+            nickname,
+            created_at AS createdAt
+        FROM users
+            WHERE deleted_at IS NULL
+        ORDER BY id DESC
+    </select>
+
+    <insert id="insertUser">
+        INSERT INTO users(
+            email
+            ,password_hash
+            ,nickname
+        )
+        VALUES(
+            #{email}
+            ,#{passwordHash}
+            ,#{nickname}
+        )
+    </insert>
+
+    <select id="findByEmail" resultType="com.eventlab.domain.user.dto.UserResponse">
+        SELECT
+            id
+            ,email
+            ,nickname
+            ,created_at AS createdAt
+        FROM users
+        WHERE email = #{email}
+            AND deleted_at IS NULL
+    </select>
+
+    <select id="countByEmail" resultType="int">
+        SELECT
+            COUNT(*)
+        FROM users
+        WHERE email = #{email}
+            AND deleted_at IS NULL
+    </select>
+</mapper>

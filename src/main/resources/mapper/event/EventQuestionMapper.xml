@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eventlab.domain.event.mapper.EventQuestionMapper">
+
+    <insert id="insertQuestion"
+            parameterType="com.eventlab.domain.event.dto.QuestionInsertCommand"
+            useGeneratedKeys="true"
+            keyProperty="id">
+
+        INSERT INTO event_questions (
+            event_id,
+            question_type,
+            title,
+            description,
+            is_required,
+            sort_order,
+            rating_min,
+            rating_max
+        )
+        VALUES (
+            #{eventId},
+            #{questionType},
+            #{title},
+            #{description},
+            #{required},
+            #{sortOrder},
+            #{ratingMin},
+            #{ratingMax}
+        )
+
+    </insert>
+
+    <insert id="insertOption">
+        INSERT INTO question_options (
+            question_id,
+            option_text,
+            sort_order,
+            is_other
+        )
+        VALUES (
+            #{questionId},
+            #{optionText},
+            #{sortOrder},
+            #{isOther}
+        )
+    </insert>
+
+    <select id="findNextSortOrder" resultType="int">
+        SELECT
+            COALESCE(MAX(sort_order), 0) + 1
+        FROM event_questions
+        WHERE event_id = #{eventId}
+    </select>
+
+    <select id="findQuestionById"
+            resultType="com.eventlab.domain.event.dto.EventQuestionResponse">
+        SELECT
+            id,
+            event_id AS eventId,
+            question_type AS questionType,
+            title,
+            description,
+            is_required AS required,
+            sort_order AS sortOrder,
+            rating_min AS ratingMin,
+            rating_max AS ratingMax,
+            created_at AS createdAt
+        FROM event_questions
+        WHERE id = #{questionId}
+    </select>
+
+    <select id="findOptionsByQuestionId"
+            resultType="com.eventlab.domain.event.dto.EventQuestionResponse$QuestionOptionResponse">
+        SELECT
+            id,
+            question_id AS questionId,
+            option_text AS optionText,
+            sort_order AS sortOrder,
+            is_other AS isOther
+        FROM question_options
+        WHERE question_id = #{questionId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="findQuestionsByEventId"
+            resultType="com.eventlab.domain.event.dto.EventQuestionResponse">
+
+        SELECT
+            id,
+            event_id AS eventId,
+            question_type AS questionType,
+            title,
+            description,
+            is_required AS required,
+            sort_order AS sortOrder,
+            rating_min AS ratingMin,
+            rating_max AS ratingMax,
+            created_at AS createdAt
+        FROM event_questions
+        WHERE event_id = #{eventId}
+        ORDER BY sort_order ASC, id ASC
+
+    </select>
+
+    <select id="findOptionsByEventId"
+            resultType="com.eventlab.domain.event.dto.EventQuestionResponse$QuestionOptionResponse">
+
+        SELECT
+            qo.id,
+            qo.question_id AS questionId,
+            qo.option_text AS optionText,
+            qo.sort_order AS sortOrder,
+            qo.is_other AS isOther
+        FROM question_options qo
+            INNER JOIN event_questions eq
+                ON eq.id = qo.question_id
+        WHERE eq.event_id = #{eventId}
+        ORDER BY eq.sort_order ASC, eq.id ASC, qo.sort_order ASC, qo.id ASC
+    </select>
+
+    <select id="findQuestionByIdAndEventId"
+            resultType="com.eventlab.domain.event.dto.EventQuestionResponse">
+        SELECT
+            id,
+            event_id AS eventId,
+            question_type AS questionType,
+            title,
+            description,
+            is_required AS required,
+            sort_order AS sortOrder,
+            rating_min AS ratingMin,
+            rating_max AS ratingMax,
+            created_at AS createdAt
+        FROM event_questions
+        WHERE id = #{questionId}
+            AND event_id = #{eventId}
+    </select>
+
+    <select id="findQuestionIdsByEventId" resultType="long">
+        SELECT
+            id
+        FROM event_questions
+        WHERE event_id = #{eventId}
+        ORDER BY sort_order ASC, id ASC
+    </select>
+
+    <select id="countAnswersByQuestionId" resultType="long">
+        SELECT
+            COUNT(*)
+        FROM answers
+        WHERE question_id = #{questionId}
+    </select>
+
+    <select id="countAnswerOptionsByOptionId" resultType="long">
+        SELECT
+            COUNT(*)
+        FROM answer_options
+        WHERE question_option_id = #{optionId}
+    </select>
+
+    <update id="updateQuestion">
+        UPDATE event_questions
+            SET
+                question_type = #{questionType},
+                title = #{title},
+                description = #{description},
+                is_required = #{required},
+                rating_min = #{ratingMin},
+                rating_max = #{ratingMax}
+        WHERE id = #{questionId}
+            AND event_id = #{eventId}
+    </update>
+
+    <update id="updateOption">
+        UPDATE question_options
+            SET
+                option_text = #{optionText},
+                is_other = #{isOther}
+        WHERE id = #{optionId}
+            AND question_id = #{questionId}
+    </update>
+
+    <delete id="deleteOption">
+        DELETE FROM question_options
+        WHERE id = #{optionId}
+            AND question_id = #{questionId}
+    </delete>
+
+    <delete id="deleteOptionsByQuestionId">
+        DELETE FROM question_options
+        WHERE question_id = #{questionId}
+    </delete>
+
+    <delete id="deleteQuestion">
+        DELETE FROM event_questions
+        WHERE id = #{questionId}
+            AND event_id = #{eventId}
+    </delete>
+
+    <update id="updateQuestionSortOrder">
+        UPDATE event_questions
+            SET sort_order = #{sortOrder}
+        WHERE id = #{questionId}
+            AND event_id = #{eventId}
+    </update>
+</mapper>

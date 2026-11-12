@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eventlab.domain.answer.mapper.ResultMapper">
+
+    <select id="findParticipationStats"
+            resultType="com.eventlab.domain.answer.dto.ResultRows$ParticipationStats">
+        SELECT
+            COUNT(*) AS totalCount,
+            COUNT(CASE WHEN status = 'SUBMITTED' THEN 1 END) AS submittedCount,
+            COUNT(CASE WHEN status = 'IN_PROGRESS' THEN 1 END) AS inProgressCount
+        FROM participations
+        WHERE event_id = #{eventId}
+    </select>
+
+    <!-- 질문별 응답자 수 (answers는 답한 질문에만 행이 있음) -->
+    <select id="findAnswerCounts"
+            resultType="com.eventlab.domain.answer.dto.ResultRows$AnswerCountRow">
+        SELECT
+            question_id AS questionId,
+            COUNT(*) AS answeredCount
+        FROM answers
+        WHERE event_id = #{eventId}
+        GROUP BY question_id
+    </select>
+
+    <!-- 선택지별 선택 수 (아무도 안 고른 선택지도 0으로 포함) -->
+    <select id="findOptionCounts"
+            resultType="com.eventlab.domain.answer.dto.ResultRows$OptionCountRow">
+        SELECT
+            qo.question_id AS questionId,
+            qo.id AS optionId,
+            qo.option_text AS optionText,
+            qo.is_other AS isOther,
+            COUNT(ao.id) AS selectedCount
+        FROM event_questions eq
+            INNER JOIN question_options qo
+                ON qo.question_id = eq.id
+            LEFT JOIN answer_options ao
+                ON ao.question_option_id = qo.id
+                AND ao.question_id = qo.question_id
+        WHERE eq.event_id = #{eventId}
+        GROUP BY eq.id, eq.sort_order, qo.id, qo.question_id, qo.option_text, qo.is_other, qo.sort_order
+        ORDER BY eq.sort_order ASC, eq.id ASC, qo.sort_order ASC, qo.id ASC
+    </select>
+
+    <select id="findRatingCounts"
+            resultType="com.eventlab.domain.answer.dto.ResultRows$RatingCountRow">
+        SELECT
+            question_id AS questionId,
+            rating_value AS ratingValue,
+            COUNT(*) AS ratingCount
+        FROM answers
+        WHERE event_id = #{eventId}
+            AND rating_value IS NOT NULL
+        GROUP BY question_id, rating_value
+    </select>
+
+    <!-- 질문별 최신 N개: 서술형은 answer_text, 선택형은 기타 내용(other_text) -->
+    <select id="findTextAnswers"
+            resultType="com.eventlab.domain.answer.dto.ResultRows$TextAnswerRow">
+        SELECT
+            t.questionId,
+            t.textValue
+        FROM (
+            SELECT
+            a.question_id AS questionId,
+            COALESCE(a.answer_text, a.other_text) AS textValue,
+            ROW_NUMBER() OVER (
+                PARTITION BY a.question_id
+                ORDER BY a.created_at DESC, a.id DESC
+            ) AS rn
+            FROM answers a
+            WHERE a.event_id = #{eventId}
+                AND COALESCE(a.answer_text, a.other_text) IS NOT NULL
+        ) t
+        WHERE t.rn &lt;= #{limit}
+        ORDER BY t.questionId ASC, t.rn ASC
+    </select>
+</mapper>

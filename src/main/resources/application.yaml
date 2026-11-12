@@ -1,0 +1,23 @@
+eventlab:
+  dev-host-user-id: 6
+
+spring:
+  application:
+    name: eventlab
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/eventlab?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    username: root
+    password: Wjdalsrb11!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis:
+  mapper-locations: classpath:/mapper/**/*.xml
+  type-aliases-package: com.eventlab
+  configuration:
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    org.mybatis: DEBUG
+    org.mybatis.spring: DEBUG

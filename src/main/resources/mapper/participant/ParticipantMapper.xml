@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eventlab.domain.participant.mapper.ParticipantMapper">
+
+    <insert id="insertNonUser"
+            parameterType="com.eventlab.domain.participant.dto.NonUserInsertCommand"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO non_users (
+            reconnect_token_hash,
+            last_accessed_at
+        )
+        VALUES (
+            #{reconnectTokenHash},
+            NOW()
+        )
+    </insert>
+
+    <select id="findNonUserIdByTokenHash" resultType="long">
+        SELECT
+            id
+        FROM non_users
+        WHERE reconnect_token_hash = #{tokenHash}
+    </select>
+
+    <update id="touchNonUser">
+        UPDATE non_users
+            SET last_accessed_at = NOW()
+        WHERE id = #{nonUserId}
+    </update>
+
+    <insert id="insertParticipant"
+            parameterType="com.eventlab.domain.participant.dto.ParticipantInsertCommand"
+            useGeneratedKeys="true"
+            keyProperty="id">
+        INSERT INTO participants (
+            event_id,
+            non_user_id,
+            nickname,
+            nickname_key
+        )
+        VALUES (
+            #{eventId},
+            #{nonUserId},
+            #{nickname},
+            #{nicknameKey}
+        )
+    </insert>
+
+    <insert id="insertParticipation">
+        INSERT INTO participations (
+            event_id,
+            participant_id,
+            status
+        )
+        VALUES (
+            #{eventId},
+            #{participantId},
+            'IN_PROGRESS'
+        )
+    </insert>
+
+    <!-- 컬럼 순서 = ParticipantResponse 필드 순서 -->
+    <select id="findByEventIdAndNonUserId"
+            resultType="com.eventlab.domain.participant.dto.ParticipantResponse">
+        SELECT
+            p.id AS participantId,
+            pt.id AS participationId,
+            p.event_id AS eventId,
+            p.nickname AS nickname,
+            pt.status AS status
+        FROM participants p
+        INNER JOIN participations pt
+            ON pt.participant_id = p.id
+                AND pt.event_id = p.event_id
+        WHERE p.event_id = #{eventId}
+            AND p.non_user_id = #{nonUserId}
+    </select>
+
+    <select id="findByEventIdAndParticipantId"
+            resultType="com.eventlab.domain.participant.dto.ParticipantResponse">
+        SELECT
+            p.id AS participantId,
+            pt.id AS participationId,
+            p.event_id AS eventId,
+            p.nickname AS nickname,
+            pt.status AS status
+        FROM participants p
+        INNER JOIN participations pt
+            ON pt.participant_id = p.id
+                AND pt.event_id = p.event_id
+        WHERE p.event_id = #{eventId}
+            AND p.id = #{participantId}
+    </select>
+
+    <!-- 본인 참여 행만 잠금 (중복 제출 방지) -->
+    <select id="findParticipationForUpdate"
+            resultType="com.eventlab.domain.participant.dto.ParticipationInfo">
+        SELECT
+            pt.id AS participationId,
+            pt.status AS status
+        FROM participants p
+            INNER JOIN participations pt
+                ON pt.participant_id = p.id
+                AND pt.event_id = p.event_id
+        WHERE p.event_id = #{eventId}
+            AND p.non_user_id = #{nonUserId}
+        FOR UPDATE OF pt
+    </select>
+
+    <update id="markParticipationSubmitted">
+        UPDATE participations
+        SET
+            status = 'SUBMITTED',
+            submitted_at = NOW()
+        WHERE id = #{participationId}
+            AND status = 'IN_PROGRESS'
+    </update>
+</mapper>
